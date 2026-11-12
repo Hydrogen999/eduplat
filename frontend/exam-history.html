@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Results — EduPlat NG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-50">
+  <div id="site-nav"></div>
+
+  <main class="max-w-4xl mx-auto px-4 py-10">
+    <h1 class="text-3xl font-bold mb-2">Examination History</h1>
+    <p class="text-gray-500 mb-8">Track your performance over time.</p>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-gray-50 text-gray-500 text-sm border-b">
+            <th class="p-4 font-semibold">Exam Type</th>
+            <th class="p-4 font-semibold">Date Taken</th>
+            <th class="p-4 font-semibold">Score</th>
+            <th class="p-4 font-semibold text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="history-table">
+          <tr><td colspan="4" class="p-4 text-center text-gray-400">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    requireAuth();
+    renderNav();
+
+    async function loadHistory() {
+      try {
+        const history = await apiCall("/exams/history");
+        const tbody = document.getElementById("history-table");
+        
+        if (history.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">You haven't taken any exams yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = "";
+        history.forEach(h => {
+          const date = new Date(h.submitted_at).toLocaleDateString("en-NG", { 
+            year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+          });
+          
+          const tr = document.createElement("tr");
+          tr.className = "border-b hover:bg-gray-50";
+          tr.innerHTML = `
+            <td class="p-4 font-bold text-gray-800 uppercase">${h.exam_category}</td>
+            <td class="p-4 text-sm text-gray-500">${date}</td>
+            <td class="p-4">
+              <span class="font-bold ${h.score_percent >= 50 ? 'text-green-600' : 'text-red-600'}">
+                ${h.score_percent}%
+              </span> 
+              <span class="text-xs text-gray-400 ml-1">(${h.correct}/${h.total})</span>
+            </td>
+            <td class="p-4 text-right">
+              <a href="/exam-result.html?attempt=${h.attempt_id}" class="text-sm font-semibold text-green-600 hover:text-green-700">
+                View Details →
+              </a>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        document.getElementById("history-table").innerHTML = `<tr><td colspan="4" class="p-4 text-red-500">${err.message}</td></tr>`;
+      }
+    }
+    loadHistory();
+  </script>
+</body>
+</html>

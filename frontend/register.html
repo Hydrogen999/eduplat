@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — EduPlat NG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>body{font-family:Inter,sans-serif}</style>
+</head>
+<body class="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-10">
+  <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl ring-1 ring-slate-100">
+    <a href="/" class="flex items-center gap-2 mb-6">
+      <div class="grid h-9 w-9 place-items-center rounded-lg bg-green-600 font-bold text-white">E</div>
+      <span class="font-bold text-lg">EduPlat<span class="text-green-600">NG</span></span>
+    </a>
+    <h1 class="text-2xl font-bold">Create an account</h1>
+    <p class="text-sm text-gray-500 mt-1">Join thousands of students preparing for success.</p>
+
+    <form id="register-form" class="mt-6 space-y-4">
+      <div>
+        <label class="text-sm font-medium">Full Name</label>
+        <input name="full_name" type="text" required class="mt-1 w-full rounded-lg border p-2" />
+      </div>
+      <div>
+        <label class="text-sm font-medium">Email</label>
+        <input name="email" type="email" required class="mt-1 w-full rounded-lg border p-2" />
+      </div>
+      <div>
+        <label class="text-sm font-medium">Phone Number</label>
+        <input name="phone" type="tel" required placeholder="08012345678" class="mt-1 w-full rounded-lg border p-2" />
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm font-medium">Date of Birth</label>
+          <input name="date_of_birth" type="date" required class="mt-1 w-full rounded-lg border p-2" />
+        </div>
+        <div>
+          <label class="text-sm font-medium">Class/Level</label>
+          <select name="class_level" required class="mt-1 w-full rounded-lg border p-2">
+            <option value="JSS1">JSS1</option>
+            <option value="JSS2">JSS2</option>
+            <option value="JSS3">JSS3</option>
+            <option value="SS1">SS1</option>
+            <option value="SS2">SS2</option>
+            <option value="SS3">SS3</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-medium">Password</label>
+        <input name="password" type="password" required minlength="8" class="mt-1 w-full rounded-lg border p-2" />
+      </div>
+      <button type="submit" class="w-full rounded-lg bg-green-600 py-2.5 font-semibold text-white hover:bg-green-700">Register</button>
+      <p id="err" class="hidden rounded-lg bg-red-50 p-3 text-sm text-red-700"></p>
+    </form>
+
+    <p class="mt-6 text-center text-sm text-gray-600">
+      Already have an account? <a href="/login.html" class="font-semibold text-green-600">Log in</a>
+    </p>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    document.getElementById("register-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const errEl = document.getElementById("err");
+      errEl.classList.add("hidden");
+      const btn = form.querySelector("button");
+      btn.disabled = true; btn.textContent = "Registering...";
+      
+      try {
+        await apiCall("/auth/register", {
+          method: "POST",
+          body: JSON.stringify({
+            full_name: form.full_name.value,
+            email: form.email.value,
+            phone: form.phone.value,
+            date_of_birth: form.date_of_birth.value,
+            class_level: form.class_level.value,
+            password: form.password.value
+          }),
+        });
+        alert("Registration successful! Check your terminal (dev mode) for the verification link.");
+        window.location.href = "/login.html";
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove("hidden");
+      } finally {
+        btn.disabled = false; btn.textContent = "Register";
+      }
+    });
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: { 50:"#eef7f2",100:"#d5ebdf",500:"#0f7a4a",600:"#0b6238",700:"#084c2b",900:"#04261a" },
+          ink:   { 900:"#0f1f1a",700:"#2b3b35",500:"#556861" }
+        }
+      }
+    }
+  };
+</script>
+</body>
+</html>

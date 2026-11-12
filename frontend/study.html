@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study — EduPlat NG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <div id="site-nav"></div>
+
+  <main class="max-w-6xl mx-auto px-4 py-10">
+    <h1 class="text-3xl font-bold">Select a Department</h1>
+    <p class="text-gray-500 mt-2">Choose your learning path to start studying.</p>
+    
+    <div id="dept-grid" class="mt-8 grid gap-6 md:grid-cols-3">
+      <!-- Departments will load here -->
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    requireAuth();
+    renderNav();
+
+    async function loadDepartments() {
+      try {
+        const depts = await apiCall("/study/departments");
+        const grid = document.getElementById("dept-grid");
+        grid.innerHTML = "";
+        
+        depts.forEach(d => {
+          const card = document.createElement("a");
+          card.href = `/subject.html?dept=${d.slug}`;
+          card.className = "block p-6 bg-white rounded-2xl shadow hover:shadow-lg border border-gray-100 transition";
+          card.innerHTML = `
+            <h2 class="text-xl font-bold capitalize">${d.name}</h2>
+            <p class="text-gray-500 mt-2 text-sm">${d.description || 'Explore subjects in this department'}</p>
+            <span class="mt-4 inline-block text-green-600 font-semibold text-sm">View Subjects →</span>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+    loadDepartments();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: { 50:"#eef7f2",100:"#d5ebdf",500:"#0f7a4a",600:"#0b6238",700:"#084c2b",900:"#04261a" },
+          ink:   { 900:"#0f1f1a",700:"#2b3b35",500:"#556861" }
+        }
+      }
+    }
+  };
+</script>
+</body>
+</html>

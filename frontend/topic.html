@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Study Material — EduPlat NG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 5rem; color: rgba(15, 122, 74, 0.05); pointer-events: none; user-select: none; font-weight: 800; white-space: nowrap; z-index: 0; }
+  </style>
+</head>
+<body class="bg-white min-h-screen">
+  <div id="site-nav"></div>
+  <div id="watermark-container"></div>
+
+  <main class="max-w-3xl mx-auto px-4 py-10 relative z-10">
+    <button onclick="history.back()" class="text-sm text-green-600 font-semibold mb-6">← Back to Topics</button>
+    <h1 id="topic-title" class="text-3xl font-bold mb-8">Loading...</h1>
+    <div id="content-area" class="space-y-6"></div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    requireAuth();
+    renderNav();
+
+    const topicId = new URLSearchParams(window.location.search).get("id");
+
+    async function loadContent() {
+      try {
+        const data = await apiCall(`/study/topics/${topicId}/content`);
+        document.getElementById("topic-title").textContent = data.title;
+        
+        // Add watermark
+        document.getElementById("watermark-container").innerHTML = `<div class="watermark">${data.watermark}</div>`;
+
+        const area = document.getElementById("content-area");
+        area.innerHTML = "";
+
+        // Render blocks (assuming data.blocks is an object with a "blocks" array)
+        const blocks = data.blocks.blocks || [];
+        blocks.forEach(block => {
+          const div = document.createElement("div");
+          div.className = "p-5 bg-gray-50 rounded-xl border border-gray-100";
+          
+          if (block.type === "intro" || block.type === "summary") {
+            div.innerHTML = `<p class="text-lg font-medium">${block.text}</p>`;
+          } else if (block.type === "objectives") {
+            div.innerHTML = `<h3 class="font-bold mb-2">Learning Objectives</h3>
+              <ul class="list-disc pl-5 space-y-1 text-gray-700">${block.items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+          } else if (block.type === "explanation") {
+            div.innerHTML = `<p class="text-gray-700 leading-relaxed">${block.text}</p>`;
+          } else if (block.type === "example") {
+            div.innerHTML = `<h3 class="font-bold mb-2">Worked Example</h3>
+              <p class="mb-2">${block.question}</p>
+              <ol class="list-decimal pl-5 text-sm text-gray-600 space-y-1">${block.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+              <p class="mt-2 font-bold text-green-700">Answer: ${block.answer}</p>`;
+          }
+          area.appendChild(div);
+        });
+      } catch (err) {
+        document.getElementById("topic-title").textContent = "Error";
+        document.getElementById("content-area").innerHTML = `<p class="text-red-500">${err.message}</p>`;
+      }
+    }
+
+    if (topicId) loadContent(); else window.location.href = "/study.html";
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: { 50:"#eef7f2",100:"#d5ebdf",500:"#0f7a4a",600:"#0b6238",700:"#084c2b",900:"#04261a" },
+          ink:   { 900:"#0f1f1a",700:"#2b3b35",500:"#556861" }
+        }
+      }
+    }
+  };
+</script>
+</body>
+</html>

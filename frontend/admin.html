@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — EduPlat NG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-50">
+  <div id="site-nav"></div>
+
+  <main class="max-w-5xl mx-auto px-4 py-10">
+    <h1 class="text-3xl font-bold mb-8">Admin Dashboard 🛠️</h1>
+
+    <div class="flex gap-4 mb-6 border-b">
+      <button onclick="showTab('questions')" id="tab-questions" class="pb-2 px-4 font-bold border-b-2 border-green-600 text-green-600">Add Question</button>
+      <button onclick="showTab('topics')" id="tab-topics" class="pb-2 px-4 font-bold text-gray-500 hover:text-gray-800">Add Topic</button>
+      <button onclick="showTab('materials')" id="tab-materials" class="pb-2 px-4 font-bold text-gray-500 hover:text-gray-800">Add Study Material</button>
+    </div>
+
+    <!-- QUESTIONS TAB -->
+    <div id="content-questions" class="bg-white p-6 rounded-2xl shadow-sm border">
+      <h2 class="text-xl font-bold mb-4">Create Exam Question</h2>
+      <form id="form-question" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">Subject</label>
+            <select id="q-subject" class="w-full p-2 border rounded" required></select>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Exam Category</label>
+            <select id="q-exam" class="w-full p-2 border rounded">
+              <option value="jamb">JAMB</option>
+              <option value="waec">WAEC</option>
+              <option value="neco">NECO</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Question Text</label>
+          <textarea id="q-text" class="w-full p-2 border rounded" rows="2" required></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <input id="q-optA" placeholder="Option A" class="p-2 border rounded" required />
+          <input id="q-optB" placeholder="Option B" class="p-2 border rounded" required />
+          <input id="q-optC" placeholder="Option C" class="p-2 border rounded" required />
+          <input id="q-optD" placeholder="Option D" class="p-2 border rounded" required />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">Correct Answer</label>
+            <select id="q-correct" class="w-full p-2 border rounded">
+              <option value="A">A</option><option value="B">B</option>
+              <option value="C">C</option><option value="D">D</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Explanation</label>
+          <textarea id="q-exp" class="w-full p-2 border rounded" rows="2" required></textarea>
+        </div>
+        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Save Question</button>
+      </form>
+    </div>
+
+    <!-- TOPICS TAB -->
+    <div id="content-topics" class="bg-white p-6 rounded-2xl shadow-sm border hidden">
+      <h2 class="text-xl font-bold mb-4">Create New Topic</h2>
+      <form id="form-topic" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Subject</label>
+          <select id="t-subject" class="w-full p-2 border rounded" required></select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Topic Title</label>
+          <input id="t-title" class="w-full p-2 border rounded" placeholder="e.g. Quadratic Equations" required />
+        </div>
+        <div class="flex gap-4 items-center">
+          <label class="font-semibold text-sm">Price (₦):</label>
+          <input id="t-price" type="number" value="2000" class="p-2 border rounded w-32" required />
+        </div>
+        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Save Topic</button>
+      </form>
+    </div>
+
+    <!-- MATERIALS TAB -->
+    <div id="content-materials" class="bg-white p-6 rounded-2xl shadow-sm border hidden">
+      <h2 class="text-xl font-bold mb-4">Add Study Material</h2>
+      <form id="form-material" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">Select Topic</label>
+          <select id="m-topic" class="w-full p-2 border rounded" required>
+            <option value="">-- Loading Topics --</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Introduction</label>
+          <textarea id="m-intro" class="w-full p-2 border rounded" rows="2" required></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Objectives (One per line)</label>
+          <textarea id="m-objectives" class="w-full p-2 border rounded" rows="3" required></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">Main Explanation</label>
+          <textarea id="m-explanation" class="w-full p-2 border rounded" rows="5" required></textarea>
+        </div>
+        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Save Material</button>
+      </form>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    requireAuth();
+    renderNav();
+
+    // Tab logic
+    function showTab(name) {
+      document.querySelectorAll('[id^="content-"]').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('[id^="tab-"]').forEach(el => el.className = "pb-2 px-4 font-bold text-gray-500 hover:text-gray-800");
+      
+      document.getElementById(`content-${name}`).classList.remove('hidden');
+      document.getElementById(`tab-${name}`).className = "pb-2 px-4 font-bold border-b-2 border-green-600 text-green-600";
+    }
+
+    // Load all subjects into dropdowns
+    async function loadSubjects() {
+      try {
+        const depts = await apiCall("/study/departments");
+        const allSubjects = [];
+        for (const d of depts) {
+          const subs = await apiCall(`/study/departments/${d.slug}/subjects`);
+          allSubjects.push(...subs);
+        }
+        
+        const html = allSubjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        document.getElementById("q-subject").innerHTML = html;
+        document.getElementById("t-subject").innerHTML = html;
+        
+        loadAllTopics(allSubjects[0].id); // Load topics for first subject
+        document.getElementById("t-subject").addEventListener("change", (e) => loadAllTopics(e.target.value));
+      } catch (err) { alert(err.message); }
+    }
+
+    async function loadAllTopics(subjectId) {
+      const topics = await apiCall(`/study/subjects/${subjectId}/topics`);
+      const html = topics.map(t => `<option value="${t.id}">${t.title}</option>`).join('');
+      document.getElementById("m-topic").innerHTML = html || `<option value="">No topics found</option>`;
+    }
+
+    loadSubjects();
+
+    // Submit Question
+    document.getElementById("form-question").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await apiCall("/admin/questions", {
+          method: "POST",
+          body: JSON.stringify({
+            subject_id: document.getElementById("q-subject").value,
+            exam_category: document.getElementById("q-exam").value,
+            question_text: document.getElementById("q-text").value,
+            options: [
+              { key: "A", text: document.getElementById("q-optA").value },
+              { key: "B", text: document.getElementById("q-optB").value },
+              { key: "C", text: document.getElementById("q-optC").value },
+              { key: "D", text: document.getElementById("q-optD").value }
+            ],
+            correct_key: document.getElementById("q-correct").value,
+            explanation: document.getElementById("q-exp").value
+          })
+        });
+        alert("Question saved successfully!");
+        e.target.reset();
+      } catch (err) { alert(err.message); }
+    });
+
+    // Submit Topic
+    document.getElementById("form-topic").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await apiCall("/admin/topics", {
+          method: "POST",
+          body: JSON.stringify({
+            subject_id: document.getElementById("t-subject").value,
+            title: document.getElementById("t-title").value,
+            price_kobo: parseInt(document.getElementById("t-price").value) * 100
+          })
+        });
+        alert("Topic created successfully!");
+        e.target.reset();
+      } catch (err) { alert(err.message); }
+    });
+
+    // Submit Material
+    document.getElementById("form-material").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      try {
+        await apiCall("/admin/materials", {
+          method: "POST",
+          body: JSON.stringify({
+            topic_id: document.getElementById("m-topic").value,
+            intro: document.getElementById("m-intro").value,
+            objectives: document.getElementById("m-objectives").value.split("\n").filter(x => x.trim() !== ""),
+            explanation: document.getElementById("m-explanation").value
+          })
+        });
+        alert("Material saved successfully!");
+        e.target.reset();
+      } catch (err) { alert(err.message); }
+    });
+  </script>
+</body>
+</html>

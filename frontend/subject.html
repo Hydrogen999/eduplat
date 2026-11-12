@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subjects — EduPlat NG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <div id="site-nav"></div>
+
+  <main class="max-w-6xl mx-auto px-4 py-10">
+    <button onclick="history.back()" class="text-sm text-green-600 font-semibold mb-4">← Back</button>
+    <h1 id="page-title" class="text-3xl font-bold">Subjects</h1>
+    
+    <!-- Subjects List -->
+    <div id="subject-grid" class="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3"></div>
+
+    <!-- Topics List (Hidden initially) -->
+    <div id="topics-section" class="hidden mt-10">
+      <h2 id="topic-title" class="text-2xl font-bold mb-6">Topics</h2>
+      <div id="topic-list" class="space-y-3"></div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    requireAuth();
+    renderNav();
+
+    const params = new URLSearchParams(window.location.search);
+    const deptSlug = params.get("dept");
+
+    async function loadSubjects() {
+      if (!deptSlug) return;
+      document.getElementById("page-title").textContent = deptSlug.toUpperCase() + " Subjects";
+      
+      try {
+        const subjects = await apiCall(`/study/departments/${deptSlug}/subjects`);
+        const grid = document.getElementById("subject-grid");
+        grid.innerHTML = "";
+        
+        subjects.forEach(s => {
+          const btn = document.createElement("button");
+          btn.className = "text-left p-4 bg-white rounded-xl shadow border hover:border-green-500 transition";
+          btn.innerHTML = `<h3 class="font-bold">${s.name}</h3>`;
+          btn.onclick = () => loadTopics(s.id, s.name);
+          grid.appendChild(btn);
+        });
+      } catch (err) { alert(err.message); }
+    }
+
+    async function loadTopics(subjectId, subjectName) {
+      document.getElementById("subject-grid").classList.add("hidden");
+      document.getElementById("topics-section").classList.remove("hidden");
+      document.getElementById("topic-title").textContent = subjectName + " Topics";
+      
+      const list = document.getElementById("topic-list");
+      list.innerHTML = "<p>Loading topics...</p>";
+
+      try {
+        const topics = await apiCall(`/study/subjects/${subjectId}/topics`);
+        list.innerHTML = "";
+        
+        topics.forEach(t => {
+          const item = document.createElement("div");
+          item.className = "flex items-center justify-between p-4 bg-white rounded-xl border";
+          
+          const price = t.is_unlocked ? '<span class="text-green-600 text-sm font-bold">Unlocked</span>' 
+            : `<span class="text-gray-500 text-sm">₦${(t.price_kobo / 100).toLocaleString()}</span>`;
+          
+          item.innerHTML = `
+            <div>
+              <h4 class="font-bold">${t.title}</h4>
+              <p class="text-xs text-gray-500">${t.summary || ''}</p>
+            </div>
+            <div class="flex items-center gap-4">
+              ${price}
+              <button onclick="handleTopic('${t.id}', ${t.is_unlocked})" class="px-4 py-2 rounded-lg text-sm font-semibold ${t.is_unlocked ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}">
+                ${t.is_unlocked ? 'Read' : 'Unlock'}
+              </button>
+            </div>
+          `;
+          list.appendChild(item);
+        });
+      } catch (err) { list.innerHTML = `<p class="text-red-500">${err.message}</p>`; }
+    }
+
+    async function handleTopic(topicId, isUnlocked) {
+      if (isUnlocked) {
+        window.location.href = `/topic.html?id=${topicId}`;
+      } else {
+        // Payment flow
+        if (!confirm("Unlock this topic for ₦2,000?")) return;
+        try {
+          const pay = await apiCall("/payments/initiate", {
+            method: "POST",
+            body: JSON.stringify({ kind: "topic", target_id: topicId })
+          });
+          window.location.href = pay.authorization_url;
+        } catch (err) { alert(err.message); }
+      }
+    }
+
+    if (deptSlug) loadSubjects();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: { 50:"#eef7f2",100:"#d5ebdf",500:"#0f7a4a",600:"#0b6238",700:"#084c2b",900:"#04261a" },
+          ink:   { 900:"#0f1f1a",700:"#2b3b35",500:"#556861" }
+        }
+      }
+    }
+  };
+</script>
+</body>
+</html>

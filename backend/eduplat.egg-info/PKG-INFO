@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: eduplat
+Version: 0.1.0
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.115.0
+Requires-Dist: uvicorn[standard]>=0.30.0
+Requires-Dist: sqlalchemy[asyncio]>=2.0.30
+Requires-Dist: asyncpg>=0.29.0
+Requires-Dist: alembic>=1.13.0
+Requires-Dist: argon2-cffi>=23.1.0
+Requires-Dist: python-jose[cryptography]>=3.3.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: pydantic[email]>=2.7.0
+Requires-Dist: pydantic-settings>=2.3.0
+Requires-Dist: slowapi>=0.1.9
+Requires-Dist: redis>=5.0.0

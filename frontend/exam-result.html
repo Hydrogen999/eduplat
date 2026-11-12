@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exam Result — EduPlat NG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { brand: { 500:"#0f7a4a", 600:"#0b6238" }, ink: { 900:"#0f1f1a", 500:"#556861" } } } }
+    };
+  </script>
+</head>
+<body class="min-h-screen bg-slate-50 text-ink-900">
+  <div id="site-nav"></div>
+
+  <main class="max-w-4xl mx-auto px-4 py-10">
+    <div id="loading" class="text-center py-20">Loading your results...</div>
+
+    <div id="result-content" class="hidden">
+      <!-- Score Card -->
+      <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center">
+        <h1 class="text-2xl font-bold text-gray-500 mb-2">Examination Completed</h1>
+        <div id="score-display" class="text-6xl font-black text-brand-600 my-4">0%</div>
+        <p id="score-details" class="text-gray-500">0 correct out of 0 total questions</p>
+        
+        <div class="mt-8 flex justify-center gap-4">
+          <a href="/exams.html" class="px-6 py-2.5 bg-brand-500 text-white rounded-xl font-semibold hover:bg-brand-600 transition">Take Another Exam</a>
+          <a href="/dashboard.html" class="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition">Back to Dashboard</a>
+        </div>
+      </div>
+
+      <!-- Review Section -->
+      <h2 class="text-2xl font-bold mt-12 mb-6">Review Answers & Explanations</h2>
+      <div id="review-list" class="space-y-6"></div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    requireAuth();
+    renderNav();
+
+    const attemptId = new URLSearchParams(window.location.search).get("attempt");
+    if (!attemptId) window.location.href = "/exams.html";
+
+    async function loadResult() {
+      try {
+        const data = await apiCall(`/exams/attempts/${attemptId}/result`);
+        
+        document.getElementById("loading").classList.add("hidden");
+        document.getElementById("result-content").classList.remove("hidden");
+
+        // Set Score
+        document.getElementById("score-display").textContent = `${data.percent}%`;
+        document.getElementById("score-details").textContent = `${data.correct} correct out of ${data.total} questions`;
+
+        // Render Review
+        const list = document.getElementById("review-list");
+        data.items.forEach((item, index) => {
+          const isCorrect = item.is_correct;
+          const statusColor = isCorrect ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50";
+          const statusText = isCorrect ? "Correct" : "Incorrect";
+
+          const card = document.createElement("div");
+          card.className = "bg-white p-6 rounded-2xl shadow-sm border border-gray-100";
+          
+          let optionsHtml = "";
+          item.options.forEach(opt => {
+            let optClass = "border-gray-200";
+            if (opt.key === item.correct_key) optClass = "border-green-500 bg-green-50";
+            else if (opt.key === item.selected_key && !isCorrect) optClass = "border-red-500 bg-red-50";
+
+            optionsHtml += `
+              <div class="flex items-center gap-3 p-3 rounded-lg border ${optClass} mt-2">
+                <span class="font-bold w-6">${opt.key}</span>
+                <span>${opt.text}</span>
+              </div>
+            `;
+          });
+
+          card.innerHTML = `
+            <div class="flex items-start justify-between">
+              <h3 class="font-bold text-lg">Question ${index + 1}</h3>
+              <span class="px-3 py-1 rounded-full text-xs font-bold ${statusColor}">${statusText}</span>
+            </div>
+            <p class="mt-2 text-gray-700">${item.question_text}</p>
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">${optionsHtml}</div>
+            <div class="mt-4 p-4 bg-blue-50 rounded-xl text-sm text-blue-900 border border-blue-100">
+              <strong>Explanation:</strong> ${item.explanation}
+            </div>
+          `;
+          list.appendChild(card);
+        });
+      } catch (err) {
+        document.getElementById("loading").textContent = err.message;
+      }
+    }
+    loadResult();
+  </script>
+</body>
+</html>

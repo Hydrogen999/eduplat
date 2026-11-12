@@ -1,0 +1,8 @@
+pyproject.toml
+app/__init__.py
+app/main.py
+eduplat.egg-info/PKG-INFO
+eduplat.egg-info/SOURCES.txt
+eduplat.egg-info/dependency_links.txt
+eduplat.egg-info/requires.txt
+eduplat.egg-info/top_level.txt

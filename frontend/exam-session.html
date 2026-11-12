@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Examination — EduPlat NG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
+  <style>body{font-family:Inter,sans-serif}</style>
+</head>
+<body class="min-h-screen bg-slate-50">
+
+<div class="grid min-h-screen grid-cols-1 md:grid-cols-[1fr_280px]">
+  <main class="p-4 md:p-8">
+    <div class="flex items-center justify-between">
+      <h1 id="q-counter" class="font-display text-xl font-bold">Loading…</h1>
+      <div id="timer" class="rounded-lg bg-brand-50 px-3 py-2 font-mono font-semibold text-brand-700">--:--:--</div>
+    </div>
+
+    <article id="question-card" class="mt-6 hidden rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
+      <p id="q-text" class="text-lg"></p>
+      <img id="q-image" class="mt-4 hidden max-h-64 rounded-lg border" alt="" />
+      <div id="q-options" class="mt-5 space-y-3"></div>
+    </article>
+
+    <div class="mt-5 flex justify-between">
+      <button id="prev-btn" class="inline-flex items-center gap-1 rounded-lg border px-4 py-2 disabled:opacity-40">← Previous</button>
+      <button id="next-btn" class="inline-flex items-center gap-1 rounded-lg bg-brand-500 px-4 py-2 text-white">Next →</button>
+      <button id="submit-btn" class="hidden rounded-lg bg-ink-900 px-5 py-2 text-white">Submit examination</button>
+    </div>
+  </main>
+
+  <aside class="border-l border-slate-100 bg-white p-4">
+    <div id="answered-count" class="text-sm font-semibold text-ink-700">0 / 0 answered</div>
+    <div id="q-grid" class="mt-4 grid grid-cols-5 gap-2"></div>
+    <button onclick="submitExam(false)" class="mt-6 w-full rounded-lg bg-ink-900 py-2 text-white">Submit</button>
+    <p class="mt-3 text-xs text-ink-500">Your progress is auto-saved on the server every time you answer.</p>
+  </aside>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+requireAuth();
+
+const params = new URLSearchParams(window.location.search);
+const attemptId = params.get("attempt");
+if (!attemptId) window.location.href = "/exams.html";
+
+let questions = [];
+let answers = {};
+let idx = 0;
+let expiresAt = 0;
+let submitted = false;
+
+async function init() {
+  try {
+    const data = await apiCall(`/exams/attempts/${attemptId}/start`, { method: "POST" });
+    questions = data.questions;
+    answers = data.saved_responses || {};
+    expiresAt = new Date(data.expires_at).getTime();
+    render();
+    setInterval(tick, 500);
+  } catch (err) {
+    alert(err.message);
+    window.location.href = "/exams.html";
+  }
+}
+
+function tick() {
+  const left = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+  const h = String(Math.floor(left / 3600)).padStart(2, "0");
+  const m = String(Math.floor((left % 3600) / 60)).padStart(2, "0");
+  const s = String(left % 60).padStart(2, "0");
+  const timer = document.getElementById("timer");
+  timer.textContent = `${h}:${m}:${s}`;
+  timer.className = left < 60
+    ? "rounded-lg bg-red-50 px-3 py-2 font-mono font-semibold text-red-600"
+    : "rounded-lg bg-brand-50 px-3 py-2 font-mono font-semibold text-brand-700";
+  if (left === 0 && !submitted) submitExam(true);
+}
+
+function render() {
+  if (!questions.length) return;
+  const q = questions[idx];
+  document.getElementById("q-counter").textContent = `Question ${idx + 1} of ${questions.length}`;
+  document.getElementById("question-card").classList.remove("hidden");
+  document.getElementById("q-text").textContent = q.question_text;
+
+  const img = document.getElementById("q-image");
+  if (q.image_url) { img.src = q.image_url; img.classList.remove("hidden"); }
+  else img.classList.add("hidden");
+
+  const opts = document.getElementById("q-options");
+  opts.innerHTML = "";
+  q.options.forEach((o) => {
+    const sel = answers[q.id] === o.key;
+    const btn = document.createElement("button");
+    btn.className = `flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${sel ? "border-brand-500 bg-brand-50" : "border-slate-200 hover:border-brand-500"}`;
+    btn.innerHTML = `<span class="grid h-8 w-8 place-items-center rounded-lg font-semibold ${sel ? "bg-brand-500 text-white" : "bg-slate-100"}">${escapeHtml(o.key)}</span><span>${escapeHtml(o.text)}</span>`;
+    btn.onclick = () => choose(q.id, o.key);
+    opts.appendChild(btn);
+  });
+
+  document.getElementById("prev-btn").disabled = idx === 0;
+  document.getElementById("next-btn").classList.toggle("hidden", idx >= questions.length - 1);
+  document.getElementById("submit-btn").classList.toggle("hidden", idx < questions.length - 1);
+
+  const answered = Object.values(answers).filter(Boolean).length;
+  document.getElementById("answered-count").textContent = `${answered} / ${questions.length} answered`;
+
+  const grid = document.getElementById("q-grid");
+  grid.innerHTML = "";
+  questions.forEach((qq, i) => {
+    const b = document.createElement("button");
+    const isCurrent = i === idx;
+    const isAnswered = !!answers[qq.id];
+    b.className = `grid h-9 place-items-center rounded-lg text-sm font-semibold ring-1 ${isCurrent ? "ring-2 ring-brand-500" : "ring-slate-200"} ${isAnswered ? "bg-brand-500 text-white" : "bg-white"}`;
+    b.textContent = i + 1;
+    b.onclick = () => { idx = i; render(); };
+    grid.appendChild(b);
+  });
+}
+
+async function choose(qid, key) {
+  answers[qid] = key;
+  render();
+  try {
+    await apiCall(`/exams/attempts/${attemptId}/answer`, {
+      method: "POST",
+      body: JSON.stringify({ question_id: qid, selected_key: key }),
+    });
+  } catch (e) { toast("Answer not saved — will retry on submit", "error"); }
+}
+
+async function submitExam(auto) {
+  if (submitted) return;
+  if (!auto && !confirm("Submit examination? You cannot change answers after this.")) return;
+  submitted = true;
+  try {
+    await apiCall(`/exams/attempts/${attemptId}/submit`, {
+      method: "POST",
+      body: JSON.stringify({ confirm: true }),
+    });
+    window.location.href = `/exam-result.html?attempt=${attemptId}`;
+  } catch (e) {
+    submitted = false;
+    toast(e.message, "error");
+  }
+}
+
+document.getElementById("prev-btn").onclick = () => { if (idx > 0) { idx--; render(); } };
+document.getElementById("next-btn").onclick = () => { if (idx < questions.length - 1) { idx++; render(); } };
+document.getElementById("submit-btn").onclick = () => submitExam(false);
+
+init();
+</script>
+</body>
+</html>

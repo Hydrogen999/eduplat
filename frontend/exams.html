@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Examinations — EduPlat NG</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { brand: { 500:"#0f7a4a", 600:"#0b6238" } } } }
+    };
+  </script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <div id="site-nav"></div>
+
+  <main class="max-w-4xl mx-auto px-4 py-10">
+    <h1 class="text-3xl font-bold">Examination Centre</h1>
+    <p class="text-gray-500 mt-2">Set up your CBT practice session.</p>
+
+    <div class="mt-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <form id="exam-form" class="space-y-6">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block font-semibold mb-2">Examination Type</label>
+            <select name="exam_category" class="w-full p-3 border rounded-xl" required>
+              <option value="jamb">JAMB</option>
+              <option value="waec">WAEC</option>
+              <option value="neco">NECO</option>
+              <option value="junior">Junior Secondary (JSS)</option>
+            </select>
+          </div>
+          
+          <!-- NEW: DEPARTMENT SELECTOR -->
+          <div>
+            <label class="block font-semibold mb-2">Select Department</label>
+            <select id="dept-select" name="department" class="w-full p-3 border rounded-xl" required>
+              <option value="">-- Choose Department --</option>
+              <option value="science">Science</option>
+              <option value="commercial">Commercial</option>
+              <option value="art">Art</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-2">Select Subjects (Choose at least 1)</label>
+          <div id="subject-checkboxes" class="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 min-h-[100px]">
+            <p class="text-sm text-gray-500 col-span-full">Please select a department first to see subjects.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold mb-2">Number of Questions</label>
+            <input name="question_count" type="number" value="5" min="5" max="100" class="w-full p-3 border rounded-xl" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-2">Duration (Minutes)</label>
+            <input name="duration_minutes" type="number" value="30" min="5" max="180" class="w-full p-3 border rounded-xl" />
+          </div>
+        </div>
+
+        <div class="bg-green-50 p-4 rounded-xl flex justify-between items-center border border-green-100">
+          <div>
+            <h3 class="font-bold text-green-900">Examination Fee</h3>
+            <p class="text-sm text-green-700">One-time payment per session</p>
+          </div>
+          <div class="text-xl font-bold text-green-700">₦1,000</div>
+        </div>
+
+        <button type="submit" id="start-btn" class="w-full py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition disabled:opacity-50">
+          Pay & Start Examination
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    requireAuth();
+    renderNav();
+
+    const deptSelect = document.getElementById("dept-select");
+    const checkboxContainer = document.getElementById("subject-checkboxes");
+
+    // Listen for department change
+    deptSelect.addEventListener("change", async (e) => {
+      const deptSlug = e.target.value;
+      if (!deptSlug) {
+        checkboxContainer.innerHTML = `<p class="text-sm text-gray-500 col-span-full">Please select a department first to see subjects.</p>`;
+        return;
+      }
+
+      checkboxContainer.innerHTML = `<p class="text-sm text-gray-500 col-span-full">Loading subjects...</p>`;
+
+      try {
+        const subjects = await apiCall(`/study/departments/${deptSlug}/subjects`);
+        checkboxContainer.innerHTML = "";
+        
+        subjects.forEach(s => {
+          const label = document.createElement("label");
+          label.className = "flex items-center gap-2 p-3 bg-white border rounded-lg cursor-pointer hover:border-green-500 transition";
+          label.innerHTML = `
+            <input type="checkbox" name="subjects" value="${s.id}" class="w-4 h-4 text-green-600 rounded" />
+            <span class="text-sm font-medium">${s.name}</span>
+          `;
+          checkboxContainer.appendChild(label);
+        });
+      } catch (err) {
+        checkboxContainer.innerHTML = `<p class="text-red-500 col-span-full">${err.message}</p>`;
+      }
+    });
+
+    document.getElementById("exam-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const btn = document.getElementById("start-btn");
+      
+      const selectedSubjects = Array.from(form.querySelectorAll('input[name="subjects"]:checked')).map(cb => cb.value);
+      if (selectedSubjects.length === 0) return alert("Please select at least one subject.");
+
+      btn.disabled = true; btn.textContent = "Creating session...";
+
+      try {
+        const attempt = await apiCall("/exams/attempts", {
+          method: "POST",
+          body: JSON.stringify({
+            exam_category: form.exam_category.value,
+            subject_ids: selectedSubjects,
+            question_count: parseInt(form.question_count.value),
+            duration_minutes: parseInt(form.duration_minutes.value)
+          })
+        });
+
+        const pay = await apiCall("/payments/initiate", {
+          method: "POST",
+          body: JSON.stringify({ kind: "exam", target_id: attempt.attempt_id })
+        });
+
+        window.location.href = pay.authorization_url;
+
+      } catch (err) {
+        alert(err.message);
+        btn.disabled = false; btn.textContent = "Pay & Start Examination";
+      }
+    });
+  </script>
+</body>
+</html>
