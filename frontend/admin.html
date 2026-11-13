@@ -93,24 +93,26 @@
             <option value="">-- Loading Topics --</option>
           </select>
         </div>
+        
+        <!-- REMOVED 'required' FROM THE NEXT THREE FIELDS -->
         <div>
-          <label class="block text-sm font-semibold mb-1">Introduction</label>
-          <textarea id="m-intro" class="w-full p-2 border rounded" rows="2" required></textarea>
+          <label class="block text-sm font-semibold mb-1">Introduction (Optional)</label>
+          <textarea id="m-intro" class="w-full p-2 border rounded" rows="2"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Objectives (One per line)</label>
-          <textarea id="m-objectives" class="w-full p-2 border rounded" rows="3" required></textarea>
+          <label class="block text-sm font-semibold mb-1">Objectives (Optional, one per line)</label>
+          <textarea id="m-objectives" class="w-full p-2 border rounded" rows="3"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1">Main Explanation</label>
-          <textarea id="m-explanation" class="w-full p-2 border rounded" rows="5" required></textarea>
+          <label class="block text-sm font-semibold mb-1">Main Explanation (Optional)</label>
+          <textarea id="m-explanation" class="w-full p-2 border rounded" rows="5"></textarea>
         </div>
         
-        <!-- NEW PDF UPLOAD SECTION -->
+        <!-- PDF UPLOAD SECTION -->
         <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
           <label class="block text-sm font-bold text-yellow-800 mb-2">Upload PDF Notes (Optional)</label>
           <input type="file" id="m-pdf" accept=".pdf" class="w-full p-2 bg-white border rounded" />
-          <p class="text-xs text-yellow-700 mt-1">If you upload a PDF, it will be displayed below your text notes.</p>
+          <p class="text-xs text-yellow-700 mt-1">If you upload a PDF, it will be displayed on the reading page.</p>
         </div>
 
         <button type="submit" id="btn-save-material" class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700 disabled:opacity-50">Save Material</button>
