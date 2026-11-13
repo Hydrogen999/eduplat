@@ -12,7 +12,7 @@
     <p id="message" class="mt-2 text-ink-500 text-sm">Please wait a moment.</p>
   </div>
 
-  <script src="/js/api.js"></script>
+   <script src="/js/api.js"></script>
   <script>
   (async () => {
     const params = new URLSearchParams(window.location.search);
@@ -20,11 +20,22 @@
     if (!ref) { document.getElementById("title").textContent = "No payment reference found."; return; }
 
     try {
-      await apiCall(`/payments/verify/${ref}`);
+      const result = await apiCall(`/payments/verify/${ref}`);
       document.getElementById("spinner").classList.add("hidden");
       document.getElementById("title").textContent = "Payment successful ✅";
-      document.getElementById("message").textContent = "Redirecting…";
-      setTimeout(() => window.location.href = "/dashboard.html", 1500);
+      document.getElementById("message").textContent = "Redirecting...";
+      
+      // THIS IS THE FIX: Check what they bought!
+      setTimeout(() => {
+        if (result.kind === "exam") {
+          // If it's an exam, go straight to the CBT screen!
+          window.location.href = `/exam-session.html?attempt=${result.target_id}`;
+        } else {
+          // If it's a topic, go back to the dashboard
+          window.location.href = "/dashboard.html";
+        }
+      }, 1500);
+      
     } catch (e) {
       document.getElementById("spinner").classList.add("hidden");
       document.getElementById("title").textContent = "Payment could not be verified";
@@ -32,18 +43,3 @@
     }
   })();
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          brand: { 50:"#eef7f2",100:"#d5ebdf",500:"#0f7a4a",600:"#0b6238",700:"#084c2b",900:"#04261a" },
-          ink:   { 900:"#0f1f1a",700:"#2b3b35",500:"#556861" }
-        }
-      }
-    }
-  };
-</script>
-</body>
-</html>
