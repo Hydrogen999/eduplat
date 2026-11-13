@@ -12,17 +12,17 @@
   <main class="max-w-5xl mx-auto px-4 py-10">
     <h1 class="text-3xl font-bold mb-8">Admin Dashboard 🛠️</h1>
 
-    <div class="flex gap-4 mb-6 border-b">
-      <button onclick="showTab('questions')" id="tab-questions" class="pb-2 px-4 font-bold border-b-2 border-green-600 text-green-600">Add Question</button>
-      <button onclick="showTab('topics')" id="tab-topics" class="pb-2 px-4 font-bold text-gray-500 hover:text-gray-800">Add Topic</button>
-      <button onclick="showTab('materials')" id="tab-materials" class="pb-2 px-4 font-bold text-gray-500 hover:text-gray-800">Add Study Material</button>
+    <div class="flex gap-4 mb-6 border-b overflow-x-auto">
+      <button onclick="showTab('questions')" id="tab-questions" class="pb-2 px-4 font-bold border-b-2 border-green-600 text-green-600 whitespace-nowrap">Add Question</button>
+      <button onclick="showTab('topics')" id="tab-topics" class="pb-2 px-4 font-bold text-gray-500 hover:text-gray-800 whitespace-nowrap">Add Topic</button>
+      <button onclick="showTab('materials')" id="tab-materials" class="pb-2 px-4 font-bold text-gray-500 hover:text-gray-800 whitespace-nowrap">Add Study Material</button>
     </div>
 
     <!-- QUESTIONS TAB -->
     <div id="content-questions" class="bg-white p-6 rounded-2xl shadow-sm border">
       <h2 class="text-xl font-bold mb-4">Create Exam Question</h2>
       <form id="form-question" class="space-y-4">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-1">Subject</label>
             <select id="q-subject" class="w-full p-2 border rounded" required></select>
@@ -40,13 +40,13 @@
           <label class="block text-sm font-semibold mb-1">Question Text</label>
           <textarea id="q-text" class="w-full p-2 border rounded" rows="2" required></textarea>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input id="q-optA" placeholder="Option A" class="p-2 border rounded" required />
           <input id="q-optB" placeholder="Option B" class="p-2 border rounded" required />
           <input id="q-optC" placeholder="Option C" class="p-2 border rounded" required />
           <input id="q-optD" placeholder="Option D" class="p-2 border rounded" required />
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-semibold mb-1">Correct Answer</label>
             <select id="q-correct" class="w-full p-2 border rounded">
@@ -59,7 +59,7 @@
           <label class="block text-sm font-semibold mb-1">Explanation</label>
           <textarea id="q-exp" class="w-full p-2 border rounded" rows="2" required></textarea>
         </div>
-        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Save Question</button>
+        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700">Save Question</button>
       </form>
     </div>
 
@@ -79,7 +79,7 @@
           <label class="font-semibold text-sm">Price (₦):</label>
           <input id="t-price" type="number" value="2000" class="p-2 border rounded w-32" required />
         </div>
-        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Save Topic</button>
+        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700">Save Topic</button>
       </form>
     </div>
 
@@ -105,7 +105,15 @@
           <label class="block text-sm font-semibold mb-1">Main Explanation</label>
           <textarea id="m-explanation" class="w-full p-2 border rounded" rows="5" required></textarea>
         </div>
-        <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Save Material</button>
+        
+        <!-- NEW PDF UPLOAD SECTION -->
+        <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+          <label class="block text-sm font-bold text-yellow-800 mb-2">Upload PDF Notes (Optional)</label>
+          <input type="file" id="m-pdf" accept=".pdf" class="w-full p-2 bg-white border rounded" />
+          <p class="text-xs text-yellow-700 mt-1">If you upload a PDF, it will be displayed below your text notes.</p>
+        </div>
+
+        <button type="submit" id="btn-save-material" class="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700 disabled:opacity-50">Save Material</button>
       </form>
     </div>
   </main>
@@ -118,10 +126,10 @@
     // Tab logic
     function showTab(name) {
       document.querySelectorAll('[id^="content-"]').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('[id^="tab-"]').forEach(el => el.className = "pb-2 px-4 font-bold text-gray-500 hover:text-gray-800");
+      document.querySelectorAll('[id^="tab-"]').forEach(el => el.className = "pb-2 px-4 font-bold text-gray-500 hover:text-gray-800 whitespace-nowrap");
       
       document.getElementById(`content-${name}`).classList.remove('hidden');
-      document.getElementById(`tab-${name}`).className = "pb-2 px-4 font-bold border-b-2 border-green-600 text-green-600";
+      document.getElementById(`tab-${name}`).className = "pb-2 px-4 font-bold border-b-2 border-green-600 text-green-600 whitespace-nowrap";
     }
 
     // Load all subjects into dropdowns
@@ -138,15 +146,19 @@
         document.getElementById("q-subject").innerHTML = html;
         document.getElementById("t-subject").innerHTML = html;
         
-        loadAllTopics(allSubjects[0].id); // Load topics for first subject
+        if (allSubjects.length > 0) {
+          loadAllTopics(allSubjects[0].id); // Load topics for first subject
+        }
         document.getElementById("t-subject").addEventListener("change", (e) => loadAllTopics(e.target.value));
       } catch (err) { alert(err.message); }
     }
 
     async function loadAllTopics(subjectId) {
-      const topics = await apiCall(`/study/subjects/${subjectId}/topics`);
-      const html = topics.map(t => `<option value="${t.id}">${t.title}</option>`).join('');
-      document.getElementById("m-topic").innerHTML = html || `<option value="">No topics found</option>`;
+      try {
+        const topics = await apiCall(`/study/subjects/${subjectId}/topics`);
+        const html = topics.map(t => `<option value="${t.id}">${t.title}</option>`).join('');
+        document.getElementById("m-topic").innerHTML = html || `<option value="">No topics found</option>`;
+      } catch (err) { console.error(err); }
     }
 
     loadSubjects();
@@ -190,25 +202,59 @@
         });
         alert("Topic created successfully!");
         e.target.reset();
+        loadAllTopics(document.getElementById("t-subject").value); // Refresh dropdown
       } catch (err) { alert(err.message); }
     });
 
-    // Submit Material
+    // Submit Material (With PDF Upload Logic)
     document.getElementById("form-material").addEventListener("submit", async (e) => {
       e.preventDefault();
+      const btn = document.getElementById("btn-save-material");
+      btn.disabled = true; btn.textContent = "Uploading & Saving...";
+
       try {
+        let pdfUrl = null;
+        const fileInput = document.getElementById("m-pdf");
+        
+        // 1. Upload PDF if selected
+        if (fileInput.files.length > 0) {
+          const formData = new FormData();
+          formData.append("file", fileInput.files[0]);
+          
+          const uploadRes = await fetch("/api/v1/admin/upload-pdf", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${auth.getAccess()}` },
+            body: formData
+          });
+          
+          if (!uploadRes.ok) {
+            const errorData = await uploadRes.json().catch(()=>({}));
+            throw new Error(errorData.detail || "Failed to upload PDF");
+          }
+          
+          const uploadData = await uploadRes.json();
+          pdfUrl = uploadData.url;
+        }
+
+        // 2. Save the text material + PDF URL
         await apiCall("/admin/materials", {
           method: "POST",
           body: JSON.stringify({
             topic_id: document.getElementById("m-topic").value,
             intro: document.getElementById("m-intro").value,
             objectives: document.getElementById("m-objectives").value.split("\n").filter(x => x.trim() !== ""),
-            explanation: document.getElementById("m-explanation").value
+            explanation: document.getElementById("m-explanation").value,
+            pdf_url: pdfUrl
           })
         });
+        
         alert("Material saved successfully!");
         e.target.reset();
-      } catch (err) { alert(err.message); }
+      } catch (err) { 
+        alert(err.message); 
+      } finally {
+        btn.disabled = false; btn.textContent = "Save Material";
+      }
     });
   </script>
 </body>
