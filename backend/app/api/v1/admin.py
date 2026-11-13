@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import AdminUser
 from app.db.session import get_db
 from app.models import (
-    User, Topic, Question, Payment, ExamAttempt, AttemptStatus,
-    AuditLog, ExamCategory, Difficulty,
+    User, Topic, Subject, Question, Payment, ExamAttempt, AttemptStatus,
+    AuditLog, ExamCategory, Difficulty, LearningMaterial,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -54,7 +54,7 @@ async def update_topic(topic_id: str, payload: TopicUpdate,
                        admin: AdminUser, db: Annotated[AsyncSession, Depends(get_db)]):
     t = await db.get(Topic, topic_id)
     if not t:
-        raise HTTPException(404)
+        raise HTTPException(404, "Topic not found")
     for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(t, k, v)
     db.add(AuditLog(
@@ -65,6 +65,28 @@ async def update_topic(topic_id: str, payload: TopicUpdate,
     ))
     await db.flush()
     return {"ok": True}
+
+class TopicCreate(BaseModel):
+    subject_id: str
+    title: str
+    price_kobo: int = 200000
+    is_free_preview: bool = False
+
+@router.post("/topics", status_code=201)
+async def create_topic(payload: TopicCreate, admin: AdminUser, db: Annotated[AsyncSession, Depends(get_db)]):
+    slug = payload.title.lower().replace(" ", "-").replace("?", "")
+    t = Topic(
+        subject_id=payload.subject_id,
+        title=payload.title,
+        slug=slug,
+        price_kobo=payload.price_kobo,
+        is_free_preview=payload.is_free_preview,
+    )
+    db.add(t)
+    await db.flush()
+    db.add(AuditLog(actor_id=admin.id, action="topic.create", target=t.id))
+    await db.flush()
+    return {"id": t.id}
 
 class QuestionCreate(BaseModel):
     subject_id: str
@@ -93,46 +115,6 @@ async def create_question(payload: QuestionCreate,
     await db.flush()
     return {"id": q.id}
 
-@router.get("/payments")
-async def list_payments(_: AdminUser, db: Annotated[AsyncSession, Depends(get_db)]):
-    rows = (await db.scalars(
-        select(Payment).order_by(Payment.created_at.desc()).limit(200)
-    )).all()
-    return [
-        {
-            "reference": p.reference,
-            "user_id": p.user_id,
-            "kind": p.kind.value,
-            "amount_kobo": p.amount_kobo,
-            "status": p.status.value,
-            "created_at": p.created_at.isoformat(),
-        }
-        for p in rows
-    ]
-# ... (keep your existing code above) ...
-
-class TopicCreate(BaseModel):
-    subject_id: str
-    title: str
-    price_kobo: int = 200000
-    is_free_preview: bool = False
-
-@router.post("/topics", status_code=201)
-async def create_topic(payload: TopicCreate, admin: AdminUser, db: Annotated[AsyncSession, Depends(get_db)]):
-    slug = payload.title.lower().replace(" ", "-").replace("?", "")
-    t = Topic(
-        subject_id=payload.subject_id,
-        title=payload.title,
-        slug=slug,
-        price_kobo=payload.price_kobo,
-        is_free_preview=payload.is_free_preview,
-    )
-    db.add(t)
-    await db.flush()
-    db.add(AuditLog(actor_id=admin.id, action="topic.create", target=t.id))
-    await db.flush()
-    return {"id": t.id}
-
 class MaterialCreate(BaseModel):
     topic_id: str
     intro: str
@@ -141,6 +123,9 @@ class MaterialCreate(BaseModel):
 
 @router.post("/materials", status_code=201)
 async def create_material(payload: MaterialCreate, admin: AdminUser, db: Annotated[AsyncSession, Depends(get_db)]):
+    if not payload.topic_id:
+        raise HTTPException(400, "Topic ID is missing")
+
     # Check if topic exists
     topic = await db.get(Topic, payload.topic_id)
     if not topic:
@@ -162,5 +147,23 @@ async def create_material(payload: MaterialCreate, admin: AdminUser, db: Annotat
     else:
         db.add(LearningMaterial(topic_id=payload.topic_id, content_blocks=blocks))
     
+    db.add(AuditLog(actor_id=admin.id, action="material.create", target=payload.topic_id))
     await db.flush()
     return {"ok": True}
+
+@router.get("/payments")
+async def list_payments(_: AdminUser, db: Annotated[AsyncSession, Depends(get_db)]):
+    rows = (await db.scalars(
+        select(Payment).order_by(Payment.created_at.desc()).limit(200)
+    )).all()
+    return [
+        {
+            "reference": p.reference,
+            "user_id": p.user_id,
+            "kind": p.kind.value,
+            "amount_kobo": p.amount_kobo,
+            "status": p.status.value,
+            "created_at": p.created_at.isoformat(),
+        }
+        for p in rows
+    ]
