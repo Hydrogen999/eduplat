@@ -17,6 +17,14 @@
       }
     };
   </script>
+  
+  <!-- THIS IS THE MAGIC PDF LIBRARY -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    // Tell PDF.js where its background worker is
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  </script>
+
   <style>
     .watermark { 
       position: fixed; top: 50%; left: 50%; 
@@ -44,6 +52,36 @@
 
     const topicId = new URLSearchParams(window.location.search).get("id");
 
+    // This function draws the PDF onto the screen
+    async function renderPdfToCanvas(url, containerId) {
+      const container = document.getElementById(containerId);
+      try {
+        const loadingTask = pdfjsLib.getDocument(url);
+        const pdf = await loadingTask.promise;
+        
+        // Limit to 15 pages so it doesn't freeze the phone
+        const totalPages = Math.min(pdf.numPages, 15); 
+
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          // Scale 1.5 makes it sharp on phone screens
+          const viewport = page.getViewport({ scale: 1.5 }); 
+          
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          canvas.className = "w-full h-auto mb-4 rounded shadow border border-gray-200";
+          
+          await page.render({ canvasContext: context, viewport: viewport }).promise;
+          container.appendChild(canvas);
+        }
+      } catch (error) {
+        console.error("Error loading PDF:", error);
+        container.innerHTML = `<p class="text-red-500">Failed to load PDF document.</p>`;
+      }
+    }
+
     async function loadContent() {
       try {
         const data = await apiCall(`/study/topics/${topicId}/content`);
@@ -55,38 +93,40 @@
         const area = document.getElementById("content-area");
         area.innerHTML = "";
 
-        // Render blocks
         const blocks = data.blocks.blocks || [];
+        
         blocks.forEach(block => {
-          const div = document.createElement("div");
-          div.className = "p-5 bg-gray-50 rounded-xl border border-gray-100";
-          
-          if (block.type === "intro" || block.type === "summary") {
-            div.innerHTML = `<p class="text-lg font-medium whitespace-pre-wrap">${escapeHtml(block.text)}</p>`;
-          } else if (block.type === "objectives") {
-            div.innerHTML = `<h3 class="font-bold mb-2">Learning Objectives</h3>
-              <ul class="list-disc pl-5 space-y-1 text-gray-700 whitespace-pre-wrap">${block.items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`;
-          } else if (block.type === "explanation") {
-            div.innerHTML = `<p class="text-gray-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(block.text)}</p>`;
-          } else if (block.type === "example") {
-            div.innerHTML = `<h3 class="font-bold mb-2">Worked Example</h3>
-              <p class="mb-2 whitespace-pre-wrap">${escapeHtml(block.question)}</p>
-              <ol class="list-decimal pl-5 text-sm text-gray-600 space-y-1 whitespace-pre-wrap">${block.steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol>
-              <p class="mt-2 font-bold text-green-700">Answer: ${escapeHtml(block.answer)}</p>`;
-          } else if (block.type === "pdf" && block.url) {
-            // SECURE PDF RENDERER: Hides download and print buttons
+          // We only render the PDF block if it exists
+          if (block.type === "pdf" && block.url) {
+            const pdfId = "pdf-container-" + Math.floor(Math.random() * 10000);
+            const div = document.createElement("div");
+            div.className = "p-4 bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center";
             div.innerHTML = `
-              <h3 class="font-bold mb-2 text-green-800">Study Document</h3>
-              <div class="w-full h-[75vh] rounded-lg border border-gray-300 overflow-hidden bg-gray-100 relative">
-                <iframe src="${block.url}#toolbar=0&navpanes=0&scrollbar=0" class="w-full h-full" type="application/pdf"></iframe>
-              </div>
-              <p class="text-xs text-center text-gray-400 mt-2">This document is protected. Downloading and printing are disabled.</p>
+              <h3 class="font-bold mb-4 text-green-800 self-start">Study Document</h3>
+              <div id="${pdfId}" class="w-full flex flex-col items-center"></div>
+              <p class="text-xs text-center text-gray-400 mt-4">This document is protected. Downloading is disabled.</p>
             `;
-          }
-          
-          // Only append if the block actually has content
-          if (div.innerHTML !== "") {
-             area.appendChild(div);
+            area.appendChild(div);
+            
+            // Call the renderer
+            renderPdfToCanvas(block.url, pdfId);
+          } else if (block.type !== "pdf") {
+            // Render normal text blocks (in case you add them later)
+            const div = document.createElement("div");
+            div.className = "p-5 bg-gray-50 rounded-xl border border-gray-100";
+            
+            if (block.type === "intro" || block.type === "summary") {
+              div.innerHTML = `<p class="text-lg font-medium whitespace-pre-wrap">${escapeHtml(block.text)}</p>`;
+            } else if (block.type === "objectives") {
+              div.innerHTML = `<h3 class="font-bold mb-2">Learning Objectives</h3>
+                <ul class="list-disc pl-5 space-y-1 text-gray-700 whitespace-pre-wrap">${block.items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`;
+            } else if (block.type === "explanation") {
+              div.innerHTML = `<p class="text-gray-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(block.text)}</p>`;
+            }
+            
+            if (div.innerHTML.trim() !== "") {
+              area.appendChild(div);
+            }
           }
         });
       } catch (err) {
