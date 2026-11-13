@@ -1,9 +1,8 @@
 import os
 import shutil
 import uuid
-from fastapi import UploadFile, File
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel, Field
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -124,32 +123,33 @@ class MaterialCreate(BaseModel):
     intro: str
     objectives: list[str]
     explanation: str
+    pdf_url: str | None = None
 
 @router.post("/materials", status_code=201)
 async def create_material(payload: MaterialCreate, admin: AdminUser, db: Annotated[AsyncSession, Depends(get_db)]):
     if not payload.topic_id:
         raise HTTPException(400, "Topic ID is missing")
 
-    # Check if topic exists
     topic = await db.get(Topic, payload.topic_id)
     if not topic:
         raise HTTPException(404, "Topic not found")
 
-    # Build the JSON block structure
-    blocks = {
-        "blocks": [
-            {"type": "intro", "text": payload.intro},
-            {"type": "objectives", "items": payload.objectives},
-            {"type": "explanation", "text": payload.explanation}
-        ]
-    }
+    blocks = [
+        {"type": "intro", "text": payload.intro},
+        {"type": "objectives", "items": payload.objectives},
+        {"type": "explanation", "text": payload.explanation}
+    ]
+    
+    if payload.pdf_url:
+        blocks.append({"type": "pdf", "url": payload.pdf_url})
 
-    # Upsert (update if exists, insert if not)
+    content_data = {"blocks": blocks}
+
     existing = await db.scalar(select(LearningMaterial).where(LearningMaterial.topic_id == payload.topic_id))
     if existing:
-        existing.content_blocks = blocks
+        existing.content_blocks = content_data
     else:
-        db.add(LearningMaterial(topic_id=payload.topic_id, content_blocks=blocks))
+        db.add(LearningMaterial(topic_id=payload.topic_id, content_blocks=content_data))
     
     db.add(AuditLog(actor_id=admin.id, action="material.create", target=payload.topic_id))
     await db.flush()
@@ -171,19 +171,17 @@ async def list_payments(_: AdminUser, db: Annotated[AsyncSession, Depends(get_db
         }
         for p in rows
     ]
-    @router.post("/upload-pdf")
+
+@router.post("/upload-pdf")
 async def upload_pdf(file: UploadFile = File(...), admin: AdminUser = Depends()):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(400, "Only PDF files are allowed")
     
-    # Create uploads directory if it doesn't exist
     os.makedirs("uploads/pdfs", exist_ok=True)
     
-    # Generate a unique filename
     filename = f"{uuid.uuid4()}.pdf"
     filepath = os.path.join("uploads/pdfs", filename)
     
-    # Save the file
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
