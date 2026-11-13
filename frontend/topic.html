@@ -74,14 +74,17 @@
               <ol class="list-decimal pl-5 text-sm text-gray-600 space-y-1 whitespace-pre-wrap">${block.steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol>
               <p class="mt-2 font-bold text-green-700">Answer: ${escapeHtml(block.answer)}</p>`;
           } else if (block.type === "pdf" && block.url) {
-            // PDF RENDERER
-            div.innerHTML = `<h3 class="font-bold mb-2 text-green-800">Study Document (PDF)</h3>
-              <div class="w-full h-[600px] rounded-lg border border-gray-300 overflow-hidden bg-gray-100">
-                <iframe src="${block.url}" class="w-full h-full" type="application/pdf"></iframe>
+            // SECURE PDF RENDERER: Hides download and print buttons
+            div.innerHTML = `
+              <h3 class="font-bold mb-2 text-green-800">Study Document</h3>
+              <div class="w-full h-[75vh] rounded-lg border border-gray-300 overflow-hidden bg-gray-100 relative">
+                <iframe src="${block.url}#toolbar=0&navpanes=0&scrollbar=0" class="w-full h-full" type="application/pdf"></iframe>
               </div>
-              <p class="text-xs text-gray-500 mt-2">If the PDF doesn't load, <a href="${block.url}" target="_blank" class="text-green-600 underline">click here to open it in a new tab</a>.</p>`;
+              <p class="text-xs text-center text-gray-400 mt-2">This document is protected. Downloading and printing are disabled.</p>
+            `;
           }
           
+          // Only append if the block actually has content
           if (div.innerHTML !== "") {
              area.appendChild(div);
           }
