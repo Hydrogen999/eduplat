@@ -173,7 +173,7 @@ async def list_payments(_: AdminUser, db: Annotated[AsyncSession, Depends(get_db
     ]
 
 @router.post("/upload-pdf")
-async def upload_pdf(file: UploadFile = File(...), admin: AdminUser = Depends()):
+async def upload_pdf(file: UploadFile = File(...), admin: AdminUser):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(400, "Only PDF files are allowed")
     
