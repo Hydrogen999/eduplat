@@ -18,10 +18,9 @@
     };
   </script>
   
-  <!-- THIS IS THE MAGIC PDF LIBRARY -->
+  <!-- PDF.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
-    // Tell PDF.js where its background worker is
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   </script>
 
@@ -52,33 +51,36 @@
 
     const topicId = new URLSearchParams(window.location.search).get("id");
 
-    // This function draws the PDF onto the screen
     async function renderPdfToCanvas(url, containerId) {
       const container = document.getElementById(containerId);
       try {
         const loadingTask = pdfjsLib.getDocument(url);
         const pdf = await loadingTask.promise;
         
-        // Limit to 15 pages so it doesn't freeze the phone
-        const totalPages = Math.min(pdf.numPages, 15); 
+        // Render up to 20 pages
+        const totalPages = Math.min(pdf.numPages, 20); 
 
         for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
           const page = await pdf.getPage(pageNum);
-          // Scale 1.5 makes it sharp on phone screens
           const viewport = page.getViewport({ scale: 1.5 }); 
           
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           canvas.height = viewport.height;
           canvas.width = viewport.width;
-          canvas.className = "w-full h-auto mb-4 rounded shadow border border-gray-200";
+          canvas.className = "w-full h-auto mb-4 rounded shadow-sm border border-gray-200";
           
           await page.render({ canvasContext: context, viewport: viewport }).promise;
           container.appendChild(canvas);
         }
       } catch (error) {
         console.error("Error loading PDF:", error);
-        container.innerHTML = `<p class="text-red-500">Failed to load PDF document.</p>`;
+        // If the PDF fails (e.g. it was deleted by Render's server restart)
+        container.innerHTML = `
+          <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-center w-full">
+            <p class="text-red-600 font-semibold mb-2">Document not found.</p>
+            <p class="text-sm text-red-500">The file may have been deleted by a server restart. Please ask your admin to re-upload it.</p>
+          </div>`;
       }
     }
 
@@ -87,7 +89,6 @@
         const data = await apiCall(`/study/topics/${topicId}/content`);
         document.getElementById("topic-title").textContent = data.title;
         
-        // Add watermark
         document.getElementById("watermark-container").innerHTML = `<div class="watermark">${data.watermark}</div>`;
 
         const area = document.getElementById("content-area");
@@ -96,35 +97,38 @@
         const blocks = data.blocks.blocks || [];
         
         blocks.forEach(block => {
-          // We only render the PDF block if it exists
+          // 1. HANDLE PDF
           if (block.type === "pdf" && block.url) {
             const pdfId = "pdf-container-" + Math.floor(Math.random() * 10000);
             const div = document.createElement("div");
-            div.className = "p-4 bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center";
+            div.className = "p-4 bg-gray-50 rounded-xl border border-gray-100 flex flex-col items-center shadow-sm";
             div.innerHTML = `
               <h3 class="font-bold mb-4 text-green-800 self-start">Study Document</h3>
               <div id="${pdfId}" class="w-full flex flex-col items-center"></div>
               <p class="text-xs text-center text-gray-400 mt-4">This document is protected. Downloading is disabled.</p>
             `;
             area.appendChild(div);
-            
-            // Call the renderer
             renderPdfToCanvas(block.url, pdfId);
-          } else if (block.type !== "pdf") {
-            // Render normal text blocks (in case you add them later)
-            const div = document.createElement("div");
-            div.className = "p-5 bg-gray-50 rounded-xl border border-gray-100";
+          } 
+          // 2. HANDLE TEXT (Only show if it's not empty)
+          else if (block.type !== "pdf") {
             
-            if (block.type === "intro" || block.type === "summary") {
-              div.innerHTML = `<p class="text-lg font-medium whitespace-pre-wrap">${escapeHtml(block.text)}</p>`;
-            } else if (block.type === "objectives") {
-              div.innerHTML = `<h3 class="font-bold mb-2">Learning Objectives</h3>
+            // Check if text is actually empty
+            let contentHtml = "";
+            if ((block.type === "intro" || block.type === "summary") && block.text && block.text.trim() !== "") {
+              contentHtml = `<p class="text-lg font-medium whitespace-pre-wrap">${escapeHtml(block.text)}</p>`;
+            } else if (block.type === "objectives" && block.items && block.items.length > 0 && block.items[0].trim() !== "") {
+              contentHtml = `<h3 class="font-bold mb-2">Learning Objectives</h3>
                 <ul class="list-disc pl-5 space-y-1 text-gray-700 whitespace-pre-wrap">${block.items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`;
-            } else if (block.type === "explanation") {
-              div.innerHTML = `<p class="text-gray-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(block.text)}</p>`;
+            } else if (block.type === "explanation" && block.text && block.text.trim() !== "") {
+              contentHtml = `<p class="text-gray-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(block.text)}</p>`;
             }
             
-            if (div.innerHTML.trim() !== "") {
+            // If there is actual content, show the box
+            if (contentHtml !== "") {
+              const div = document.createElement("div");
+              div.className = "p-5 bg-white rounded-xl border border-gray-100 shadow-sm";
+              div.innerHTML = contentHtml;
               area.appendChild(div);
             }
           }
