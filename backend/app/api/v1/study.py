@@ -13,13 +13,8 @@ router = APIRouter(prefix="/study", tags=["study"])
 
 @router.get("/departments")
 async def departments(db: Annotated[AsyncSession, Depends(get_db)]):
-    rows = (await db.scalars(
-        select(Department).order_by(Department.display_order)
-    )).all()
-    return [
-        {"id": d.id, "slug": d.slug, "name": d.name, "description": d.description}
-        for d in rows
-    ]
+    rows = (await db.scalars(select(Department).order_by(Department.display_order))).all()
+    return [{"id": d.id, "slug": d.slug, "name": d.name, "description": d.description} for d in rows]
 
 @router.get("/departments/{slug}/subjects")
 async def subjects(slug: str, db: Annotated[AsyncSession, Depends(get_db)]):
@@ -27,25 +22,17 @@ async def subjects(slug: str, db: Annotated[AsyncSession, Depends(get_db)]):
     if not dept:
         raise HTTPException(404, "Department not found")
     rows = (await db.scalars(
-        select(Subject)
-        .where(Subject.department_id == dept.id, Subject.is_active == True)
-        .order_by(Subject.display_order)
+        select(Subject).where(Subject.department_id == dept.id, Subject.is_active == True).order_by(Subject.display_order)
     )).all()
-    return [
-        {"id": s.id, "name": s.name, "slug": s.slug, "description": s.description}
-        for s in rows
-    ]
+    return [{"id": s.id, "name": s.name, "slug": s.slug, "description": s.description} for s in rows]
 
 @router.get("/subjects/{subject_id}/topics")
-async def topics(subject_id: str, user: CurrentUser,
-                 db: Annotated[AsyncSession, Depends(get_db)]):
+async def topics(subject_id: str, user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     subj = await db.get(Subject, subject_id)
     if not subj:
         raise HTTPException(404, "Subject not found")
     rows = (await db.scalars(
-        select(Topic)
-        .where(Topic.subject_id == subject_id, Topic.is_active == True)
-        .order_by(Topic.display_order)
+        select(Topic).where(Topic.subject_id == subject_id, Topic.is_active == True).order_by(Topic.display_order)
     )).all()
     owned = set((await db.scalars(
         select(TopicPurchase.topic_id).where(
@@ -66,41 +53,25 @@ async def topics(subject_id: str, user: CurrentUser,
     ]
 
 @router.get("/topics/{topic_id}")
-async def topic_detail(topic_id: str, user: CurrentUser,
-                       db: Annotated[AsyncSession, Depends(get_db)]):
+async def topic_detail(topic_id: str, user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     t = await db.get(Topic, topic_id)
     if not t:
         raise HTTPException(404, "Topic not found")
     unlocked = t.is_free_preview or bool(await db.scalar(
-        select(TopicPurchase).where(
-            TopicPurchase.user_id == user.id,
-            TopicPurchase.topic_id == topic_id,
-        )
+        select(TopicPurchase).where(TopicPurchase.user_id == user.id, TopicPurchase.topic_id == topic_id)
     ))
-    return {
-        "id": t.id,
-        "title": t.title,
-        "summary": t.summary,
-        "price_kobo": t.price_kobo,
-        "is_unlocked": unlocked,
-    }
+    return {"id": t.id, "title": t.title, "summary": t.summary, "price_kobo": t.price_kobo, "is_unlocked": unlocked}
 
 @router.get("/topics/{topic_id}/content")
-async def topic_content(topic_id: str, user: CurrentUser,
-                        db: Annotated[AsyncSession, Depends(get_db)]):
+async def topic_content(topic_id: str, user: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
     t = await db.get(Topic, topic_id)
     if not t:
         raise HTTPException(404)
     if not t.is_free_preview:
-        owned = await db.scalar(select(TopicPurchase).where(
-            TopicPurchase.user_id == user.id,
-            TopicPurchase.topic_id == topic_id,
-        ))
+        owned = await db.scalar(select(TopicPurchase).where(TopicPurchase.user_id == user.id, TopicPurchase.topic_id == topic_id))
         if not owned:
             raise HTTPException(402, "Topic not purchased")
-    material = await db.scalar(
-        select(LearningMaterial).where(LearningMaterial.topic_id == topic_id)
-    )
+    material = await db.scalar(select(LearningMaterial).where(LearningMaterial.topic_id == topic_id))
     if not material:
         raise HTTPException(404, "Content coming soon")
     return {
@@ -112,8 +83,7 @@ async def topic_content(topic_id: str, user: CurrentUser,
 
 @router.get("/pdf/{filename}")
 async def get_pdf(filename: str):
-    # This path must match the one in admin.py where we save the file
     filepath = os.path.join("uploads", "pdfs", filename)
     if not os.path.exists(filepath):
         raise HTTPException(404, "PDF not found")
-    return FileResponse(filepath, media_type="application/pdf")
+    return FileResponse(filepath, media_type="application/pdf")s
