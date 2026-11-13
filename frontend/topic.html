@@ -5,8 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Study Material — EduPlat NG</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:"#eef7f2",100:"#d5ebdf",500:"#0f7a4a",600:"#0b6238",700:"#084c2b",900:"#04261a" },
+            ink:   { 900:"#0f1f1a",700:"#2b3b35",500:"#556861" }
+          }
+        }
+      }
+    };
+  </script>
   <style>
-    .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 5rem; color: rgba(15, 122, 74, 0.05); pointer-events: none; user-select: none; font-weight: 800; white-space: nowrap; z-index: 0; }
+    .watermark {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-30deg);
+      font-size: 5rem;
+      color: rgba(15, 122, 74, 0.05);
+      pointer-events: none;
+      user-select: none;
+      font-weight: 800;
+      white-space: nowrap;
+      z-index: 0;
+    }
   </style>
 </head>
 <body class="bg-white min-h-screen">
@@ -37,24 +61,24 @@
         const area = document.getElementById("content-area");
         area.innerHTML = "";
 
-        // Render blocks (assuming data.blocks is an object with a "blocks" array)
+        // Render blocks
         const blocks = data.blocks.blocks || [];
         blocks.forEach(block => {
           const div = document.createElement("div");
           div.className = "p-5 bg-gray-50 rounded-xl border border-gray-100";
           
           if (block.type === "intro" || block.type === "summary") {
-            div.innerHTML = `<p class="text-lg font-medium">${block.text}</p>`;
+            div.innerHTML = `<p class="text-lg font-medium whitespace-pre-wrap">${escapeHtml(block.text)}</p>`;
           } else if (block.type === "objectives") {
             div.innerHTML = `<h3 class="font-bold mb-2">Learning Objectives</h3>
-              <ul class="list-disc pl-5 space-y-1 text-gray-700">${block.items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+              <ul class="list-disc pl-5 space-y-1 text-gray-700 whitespace-pre-wrap">${block.items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`;
           } else if (block.type === "explanation") {
-            div.innerHTML = `<p class="text-gray-700 leading-relaxed">${block.text}</p>`;
+            div.innerHTML = `<p class="text-gray-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(block.text)}</p>`;
           } else if (block.type === "example") {
             div.innerHTML = `<h3 class="font-bold mb-2">Worked Example</h3>
-              <p class="mb-2">${block.question}</p>
-              <ol class="list-decimal pl-5 text-sm text-gray-600 space-y-1">${block.steps.map(s => `<li>${s}</li>`).join('')}</ol>
-              <p class="mt-2 font-bold text-green-700">Answer: ${block.answer}</p>`;
+              <p class="mb-2 whitespace-pre-wrap">${escapeHtml(block.question)}</p>
+              <ol class="list-decimal pl-5 text-sm text-gray-600 space-y-1 whitespace-pre-wrap">${block.steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol>
+              <p class="mt-2 font-bold text-green-700">Answer: ${escapeHtml(block.answer)}</p>`;
           }
           area.appendChild(div);
         });
@@ -66,18 +90,5 @@
 
     if (topicId) loadContent(); else window.location.href = "/study.html";
   </script>
-  <script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          brand: { 50:"#eef7f2",100:"#d5ebdf",500:"#0f7a4a",600:"#0b6238",700:"#084c2b",900:"#04261a" },
-          ink:   { 900:"#0f1f1a",700:"#2b3b35",500:"#556861" }
-        }
-      }
-    }
-  };
-</script>
 </body>
 </html>
