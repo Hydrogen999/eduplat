@@ -18,18 +18,12 @@
     };
   </script>
   <style>
-    .watermark {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) rotate(-30deg);
-      font-size: 5rem;
-      color: rgba(15, 122, 74, 0.05);
-      pointer-events: none;
-      user-select: none;
-      font-weight: 800;
-      white-space: nowrap;
-      z-index: 0;
+    .watermark { 
+      position: fixed; top: 50%; left: 50%; 
+      transform: translate(-50%, -50%) rotate(-30deg); 
+      font-size: 5rem; color: rgba(15, 122, 74, 0.05); 
+      pointer-events: none; user-select: none; 
+      font-weight: 800; white-space: nowrap; z-index: 0; 
     }
   </style>
 </head>
@@ -79,8 +73,18 @@
               <p class="mb-2 whitespace-pre-wrap">${escapeHtml(block.question)}</p>
               <ol class="list-decimal pl-5 text-sm text-gray-600 space-y-1 whitespace-pre-wrap">${block.steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol>
               <p class="mt-2 font-bold text-green-700">Answer: ${escapeHtml(block.answer)}</p>`;
+          } else if (block.type === "pdf" && block.url) {
+            // PDF RENDERER
+            div.innerHTML = `<h3 class="font-bold mb-2 text-green-800">Study Document (PDF)</h3>
+              <div class="w-full h-[600px] rounded-lg border border-gray-300 overflow-hidden bg-gray-100">
+                <iframe src="${block.url}" class="w-full h-full" type="application/pdf"></iframe>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">If the PDF doesn't load, <a href="${block.url}" target="_blank" class="text-green-600 underline">click here to open it in a new tab</a>.</p>`;
           }
-          area.appendChild(div);
+          
+          if (div.innerHTML !== "") {
+             area.appendChild(div);
+          }
         });
       } catch (err) {
         document.getElementById("topic-title").textContent = "Error";
