@@ -171,3 +171,20 @@ async def list_payments(_: AdminUser, db: Annotated[AsyncSession, Depends(get_db
         }
         for p in rows
     ]
+    @router.post("/upload-pdf")
+async def upload_pdf(file: UploadFile = File(...), admin: AdminUser = Depends()):
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(400, "Only PDF files are allowed")
+    
+    # Create uploads directory if it doesn't exist
+    os.makedirs("uploads/pdfs", exist_ok=True)
+    
+    # Generate a unique filename
+    filename = f"{uuid.uuid4()}.pdf"
+    filepath = os.path.join("uploads/pdfs", filename)
+    
+    # Save the file
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    return {"url": f"/api/v1/study/pdf/{filename}"}
