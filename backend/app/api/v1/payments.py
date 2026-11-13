@@ -80,21 +80,29 @@ async def initiate(payload: InitiateIn, user: CurrentUser,
 
 @router.get("/verify/{reference}")
 async def verify_payment(reference: str, db: Annotated[AsyncSession, Depends(get_db)]):
-    # NOTE: 'user: CurrentUser' has been removed here. 
-    # Paystack redirects from their domain back to ours. Browsers sometimes drop the auth cookie 
-    # during this redirect. The unique reference guarantees security.
-    
+    # NOTE: We removed 'user: CurrentUser' here because Paystack redirects drop the auth token.
+    # The unguessable reference provides security.
     payment = await db.scalar(select(Payment).where(Payment.reference == reference))
     if not payment:
         raise HTTPException(404, "Payment not found")
 
     if payment.status == PaymentStatus.SUCCESS:
-        return {"status": "success", "reference": reference}
+        return {
+            "status": "success", 
+            "reference": reference, 
+            "kind": payment.kind.value, 
+            "target_id": payment.target_id
+        }
 
     # Dev bypass
     if not settings.PAYSTACK_SECRET_KEY or settings.PAYSTACK_SECRET_KEY.startswith("sk_test_xxx"):
         await _finalize_payment(db, payment, {"reference": reference, "channel": "dev"})
-        return {"status": "success", "reference": reference}
+        return {
+            "status": "success", 
+            "reference": reference, 
+            "kind": payment.kind.value, 
+            "target_id": payment.target_id
+        }
 
     result = await paystack.verify(reference)
     if result.get("status") != "success" or result.get("amount") != payment.amount_kobo:
@@ -103,7 +111,12 @@ async def verify_payment(reference: str, db: Annotated[AsyncSession, Depends(get
         raise HTTPException(400, "Payment not verified")
 
     await _finalize_payment(db, payment, result)
-    return {"status": "success", "reference": reference}
+    return {
+        "status": "success", 
+        "reference": reference, 
+        "kind": payment.kind.value, 
+        "target_id": payment.target_id
+    }
 
 async def _finalize_payment(db: AsyncSession, payment: Payment, gateway_data: dict):
     if payment.status == PaymentStatus.SUCCESS:
@@ -149,4 +162,3 @@ async def paystack_webhook(request: Request, db: Annotated[AsyncSession, Depends
         return {"ok": True}
     await _finalize_payment(db, payment, data)
     return {"ok": True}
-
