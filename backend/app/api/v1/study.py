@@ -1,7 +1,7 @@
 import os
-from fastapi.responses import FileResponse
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -109,9 +109,11 @@ async def topic_content(topic_id: str, user: CurrentUser,
         "blocks": material.content_blocks,
         "watermark": f"{user.full_name} · {user.id[:8]}",
     }
-                            @router.get("/pdf/{filename}")
+
+@router.get("/pdf/{filename}")
 async def get_pdf(filename: str):
-    filepath = os.path.join("uploads/pdfs", filename)
+    # This path must match the one in admin.py where we save the file
+    filepath = os.path.join("uploads", "pdfs", filename)
     if not os.path.exists(filepath):
         raise HTTPException(404, "PDF not found")
     return FileResponse(filepath, media_type="application/pdf")
