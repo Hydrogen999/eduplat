@@ -32,7 +32,20 @@ async function apiCall(path, opts = {}) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Request failed" }));
-    throw new Error(err.detail || err.message || "Request failed");
+    let errorMessage = "Request failed";
+
+    // --- THIS IS THE FIX ---
+    if (typeof err.detail === "string") {
+      // Standard HTTP error (e.g., 401 Unauthorized)
+      errorMessage = err.detail;
+    } else if (Array.isArray(err.detail)) {
+      // FastAPI validation errors (e.g., underage registration, missing fields)
+      errorMessage = err.detail.map(e => e.msg).join(", ");
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+
+    throw new Error(errorMessage);
   }
   return res.json();
 }
